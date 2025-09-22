@@ -7,43 +7,53 @@ BuiltInRegistries = JavaClass("net.minecraft.core.registries.BuiltInRegistries")
 
 mc = Minecraft.getInstance()
 
-def hotbarToolStats(target=None):
-    inv = m.player_inventory()
+def hotbarToolStats():
     results = []
+    appendResult = results.append
 
-    for i, _ in enumerate(inv):
-        if i > 8:
-            break
+    mcPlayer = mc.player
+    invObj = mcPlayer.getInventory()
+    getItemAt = invObj.getItem
+    itemRegistry = BuiltInRegistries.ITEM
+    dcEnchant = DataComponents.ENCHANTMENTS
+    dcLore = DataComponents.LORE
 
+    for i in range(9):
         try:
-            stack = mc.player.getInventory().getItem(i)
+            stack = getItemAt(i)
+
             if stack.isEmpty():
-                results.append({"slot": i, "empty": True})
+                appendResult({"slot": i, "empty": True})
                 continue
 
-            # readable dict
+            item = stack.getItem()
+            rid = itemRegistry.getKey(item)
             entry = {
                 "slot": i,
                 "name": stack.getHoverName().getString(),
-                "registry_id": str(BuiltInRegistries.ITEM.getKey(stack.getItem())),
+                "registry_id": str(rid),
                 "count": stack.getCount(),
             }
 
             try:
-                ench = stack.get(DataComponents.ENCHANTMENTS)
+                ench = stack.get(dcEnchant)
                 entry["enchantments"] = str(ench) if ench else None
-            except:
+            except Exception:
                 entry["enchantments"] = None
 
             try:
-                lore = stack.get(DataComponents.LORE)
-                entry["lore"] = [line.getString() for line in lore.lines()] if lore else None
-            except:
+                loreVal = stack.get(dcLore)
+                if loreVal:
+                    # convert each line to plain string
+                    entry["lore"] = [ln.getString() for ln in loreVal.lines()]
+                else:
+                    entry["lore"] = None
+            except Exception:
                 entry["lore"] = None
 
-            results.append(entry)
+            appendResult(entry)
 
         except Exception as e:
-            results.append({"slot": i, "error": str(e)})
+            appendResult({"slot": i, "error": str(e)})
 
     return results
